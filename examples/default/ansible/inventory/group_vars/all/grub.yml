@@ -1,0 +1,5 @@
+---
+
+grub_options:
+  - option: systemd.unified_cgroup_hierarchy
+    value: 0

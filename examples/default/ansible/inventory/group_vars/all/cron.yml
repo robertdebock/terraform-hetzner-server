@@ -1,0 +1,9 @@
+---
+
+cron_jobs:
+  - name: docker_prune
+    minute: 13
+    hour: "*"
+    day: "*"
+    job: "docker volume prune --force > /dev/null 2>&1"
+    user: root
