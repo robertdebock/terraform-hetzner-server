@@ -6,7 +6,7 @@ data "hcloud_image" "default" {
 
 # Upload an SSH key.
 resource "hcloud_ssh_key" "default" {
-  name       = "Terraform"
+  name       = var.name
   public_key = file("~/.ssh/id_rsa.pub")
 }
 
