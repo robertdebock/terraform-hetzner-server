@@ -1,3 +1,5 @@
 ---
 
 gitlab_runner_registration_token: "glrt-INSERT_YOUR_TOKEN_HERE"
+
+gitlab_runner_concurrency: 2
