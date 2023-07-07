@@ -23,3 +23,9 @@ variable "size" {
     error_message = "Size ${var.size} not valid, please choose: \"extra-small\", \"small\", \"medium\", \"large\" or \"extra-large\"."
   }
 }
+
+variable "ssh_key_name" {
+  description = "The name of (an existing) SSH key hosted on Hetzner Cloud."
+  type        = string
+  default     = ""
+}
