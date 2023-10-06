@@ -7,3 +7,9 @@ cron_jobs:
     day: "*"
     job: "docker volume prune --force > /dev/null 2>&1"
     user: root
+  - name: remove unused volumes
+    minute: 23
+    hour: "*"
+    day: "*"
+    job: docker volume rm $(docker volume ls -q)
+    user: root

@@ -6,7 +6,6 @@
   hosts: all
   become: no  # Running as root
   gather_facts: no  # The bootstrap role gathers facts.
-  strategy: free
 
   pre_tasks:
     - name: Update apt cache
@@ -20,5 +19,5 @@
     - role: robertdebock.grub
     - role: robertdebock.docker
     - role: robertdebock.users
-    - role: robertdebock.gitlab_runner
     - role: robertdebock.cron
+    - role: robertdebock.gitlab_runner

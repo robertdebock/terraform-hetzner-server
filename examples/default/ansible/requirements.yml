@@ -9,3 +9,6 @@ roles:
   - name: robertdebock.python_pip
   - name: robertdebock.cron
   - name: robertdebock.grub
+
+collections:
+  - name: community.general

@@ -1,5 +1,9 @@
 ---
 
-gitlab_runner_registration_token: "glrt-INSERT_YOUR_TOKEN_HERE"
+gitlab_runner_registration_token: "GR1348941BxeuQfobwHSiQd9jQc84"
 
-gitlab_runner_concurrency: 2
+gitlab_runner_concurrency: 4
+
+gitlab_runner_name: "{{ inventory_hostname }}"
+
+gitlab_runner_privileged: yes
