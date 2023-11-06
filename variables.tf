@@ -29,3 +29,12 @@ variable "ssh_key_name" {
   type        = string
   default     = ""
 }
+
+variable "volumes" {
+  description = "A list of volumes and their size to attach to the server."
+  type        = list(object({
+    name = string
+    size = number
+  }))
+  default     = []
+}

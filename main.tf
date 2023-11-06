@@ -22,3 +22,19 @@ resource "hcloud_server" "default" {
     ipv6_enabled = true
   }
 }
+
+# Optionally create specified volumes.
+resource "hcloud_volume" "default" {
+  count     = length(var.volumes)
+  name      = var.volumes[count.index].name
+  size      = var.volumes[count.index].size
+  server_id = hcloud_server.default.id
+}
+
+/* # Optionally attach volumes to server.
+resource "hcloud_volume_attachment" "default" {
+  count     = length(var.volumes)
+  volume_id = hcloud_volume.default[count.index].id
+  server_id = hcloud_server.default.id
+  automount = false
+} */
