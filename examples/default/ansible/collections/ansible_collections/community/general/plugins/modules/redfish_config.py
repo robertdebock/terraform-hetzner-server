@@ -64,7 +64,8 @@ options:
   timeout:
     description:
       - Timeout in seconds for HTTP requests to OOB controller.
-    default: 10
+      - The default value for this param is C(10) but that is being deprecated
+        and it will be replaced with C(60) in community.general 9.0.0.
     type: int
   boot_order:
     required: false
@@ -145,6 +146,20 @@ options:
     default: []
     elements: str
     version_added: '7.3.0'
+  secure_boot_enable:
+    required: false
+    description:
+      - Setting parameter to enable or disable SecureBoot.
+    type: bool
+    default: True
+    version_added: '7.5.0'
+  volume_details:
+    required: false
+    description:
+      - Setting dict of volume to be created.
+    type: dict
+    default: {}
+    version_added: '7.5.0'
 author:
   - "Jose Delarosa (@jose-delarosa)"
   - "T S Kushal (@TSKushal)"
@@ -287,6 +302,15 @@ EXAMPLES = '''
       username: "{{ username }}"
       password: "{{ password }}"
 
+  - name: Set SecureBoot
+    community.general.redfish_config:
+      category: Systems
+      command: SetSecureBoot
+      baseuri: "{{ baseuri }}"
+      username: "{{ username }}"
+      password: "{{ password }}"
+      secure_boot_enable: True
+
   - name: Delete All Volumes
     community.general.redfish_config:
       category: Systems
@@ -296,6 +320,20 @@ EXAMPLES = '''
       password: "{{ password }}"
       storage_subsystem_id: "DExxxxxx"
       volume_ids: ["volume1", "volume2"]
+
+  - name: Create Volume
+    community.general.redfish_config:
+      category: Systems
+      command: CreateVolume
+      baseuri: "{{ baseuri }}"
+      username: "{{ username }}"
+      password: "{{ password }}"
+      storage_subsystem_id: "DExxxxxx"
+      volume_details:
+        Name: "MR Volume"
+        RAIDType: "RAID0"
+        Drives:
+          - "/redfish/v1/Systems/1/Storage/DE00B000/Drives/1"
 '''
 
 RETURN = '''
@@ -314,7 +352,7 @@ from ansible.module_utils.common.text.converters import to_native
 # More will be added as module features are expanded
 CATEGORY_COMMANDS_ALL = {
     "Systems": ["SetBiosDefaultSettings", "SetBiosAttributes", "SetBootOrder",
-                "SetDefaultBootOrder", "EnableSecureBoot", "DeleteVolumes"],
+                "SetDefaultBootOrder", "EnableSecureBoot", "SetSecureBoot", "DeleteVolumes", "CreateVolume"],
     "Manager": ["SetNetworkProtocols", "SetManagerNic", "SetHostInterface"],
     "Sessions": ["SetSessionService"],
 }
@@ -331,7 +369,7 @@ def main():
             password=dict(no_log=True),
             auth_token=dict(no_log=True),
             bios_attributes=dict(type='dict', default={}),
-            timeout=dict(type='int', default=10),
+            timeout=dict(type='int'),
             boot_order=dict(type='list', elements='str', default=[]),
             network_protocols=dict(
                 type='dict',
@@ -348,7 +386,9 @@ def main():
             hostinterface_id=dict(),
             sessions_config=dict(type='dict', default={}),
             storage_subsystem_id=dict(type='str', default=''),
-            volume_ids=dict(type='list', default=[], elements='str')
+            volume_ids=dict(type='list', default=[], elements='str'),
+            secure_boot_enable=dict(type='bool', default=True),
+            volume_details=dict(type='dict', default={})
         ),
         required_together=[
             ('username', 'password'),
@@ -361,6 +401,16 @@ def main():
         ],
         supports_check_mode=False
     )
+
+    if module.params['timeout'] is None:
+        timeout = 10
+        module.deprecate(
+            'The default value {0} for parameter param1 is being deprecated and it will be replaced by {1}'.format(
+                10, 60
+            ),
+            version='9.0.0',
+            collection_name='community.general'
+        )
 
     category = module.params['category']
     command_list = module.params['command']
@@ -402,6 +452,13 @@ def main():
     storage_subsystem_id = module.params['storage_subsystem_id']
     volume_ids = module.params['volume_ids']
 
+    # Set SecureBoot options
+    secure_boot_enable = module.params['secure_boot_enable']
+
+    # Volume creation options
+    volume_details = module.params['volume_details']
+    storage_subsystem_id = module.params['storage_subsystem_id']
+
     # Build root URI
     root_uri = "https://" + module.params['baseuri']
     rf_utils = RedfishUtils(creds, root_uri, timeout, module,
@@ -435,8 +492,12 @@ def main():
                 result = rf_utils.set_default_boot_order()
             elif command == "EnableSecureBoot":
                 result = rf_utils.enable_secure_boot()
+            elif command == "SetSecureBoot":
+                result = rf_utils.set_secure_boot(secure_boot_enable)
             elif command == "DeleteVolumes":
                 result = rf_utils.delete_volumes(storage_subsystem_id, volume_ids)
+            elif command == "CreateVolume":
+                result = rf_utils.create_volume(volume_details, storage_subsystem_id)
 
     elif category == "Manager":
         # execute only if we find a Manager service resource

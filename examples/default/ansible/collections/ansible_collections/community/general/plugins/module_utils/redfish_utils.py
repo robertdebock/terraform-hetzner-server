@@ -10,6 +10,8 @@ import json
 import os
 import random
 import string
+import gzip
+from io import BytesIO
 from ansible.module_utils.urls import open_url
 from ansible.module_utils.common.text.converters import to_native
 from ansible.module_utils.common.text.converters import to_text
@@ -128,8 +130,10 @@ class RedfishUtils(object):
         return resp
 
     # The following functions are to send GET/POST/PATCH/DELETE requests
-    def get_request(self, uri):
+    def get_request(self, uri, override_headers=None):
         req_headers = dict(GET_HEADERS)
+        if override_headers:
+            req_headers.update(override_headers)
         username, password, basic_auth = self._auth_params(req_headers)
         try:
             # Service root is an unauthenticated resource; remove credentials
@@ -141,8 +145,13 @@ class RedfishUtils(object):
                             force_basic_auth=basic_auth, validate_certs=False,
                             follow_redirects='all',
                             use_proxy=True, timeout=self.timeout)
-            data = json.loads(to_native(resp.read()))
-            headers = dict((k.lower(), v) for (k, v) in resp.info().items())
+            if override_headers:
+                resp = gzip.open(BytesIO(resp.read()), 'rt', encoding='utf-8')
+                data = json.loads(to_native(resp.read()))
+                headers = req_headers
+            else:
+                data = json.loads(to_native(resp.read()))
+                headers = dict((k.lower(), v) for (k, v) in resp.info().items())
         except HTTPError as e:
             msg = self._get_extended_message(e)
             return {'ret': False,
@@ -1745,6 +1754,7 @@ class RedfishUtils(object):
         image_file = update_opts.get('update_image_file')
         targets = update_opts.get('update_targets')
         apply_time = update_opts.get('update_apply_time')
+        oem_params = update_opts.get('update_oem_params')
 
         # Ensure the image file is provided
         if not image_file:
@@ -1775,6 +1785,8 @@ class RedfishUtils(object):
             payload["Targets"] = targets
         if apply_time:
             payload["@Redfish.OperationApplyTime"] = apply_time
+        if oem_params:
+            payload["Oem"] = oem_params
         multipart_payload = {
             'UpdateParameters': {'content': json.dumps(payload), 'mime_type': 'application/json'},
             'UpdateFile': {'filename': image_file, 'content': image_payload, 'mime_type': 'application/octet-stream'}
@@ -2460,7 +2472,7 @@ class RedfishUtils(object):
         result = {}
         properties = ['Name', 'Id', 'Description', 'FQDN', 'IPv4Addresses', 'IPv6Addresses',
                       'NameServers', 'MACAddress', 'PermanentMACAddress',
-                      'SpeedMbps', 'MTUSize', 'AutoNeg', 'Status']
+                      'SpeedMbps', 'MTUSize', 'AutoNeg', 'Status', 'LinkStatus']
         response = self.get_request(self.root_uri + resource_uri)
         if response['ret'] is False:
             return response
@@ -3432,6 +3444,25 @@ class RedfishUtils(object):
 
         return self.patch_request(self.root_uri + secure_boot_url, body, check_pyld=True)
 
+    def set_secure_boot(self, secure_boot_enable):
+        # This function enable Secure Boot on an OOB controller
+
+        response = self.get_request(self.root_uri + self.systems_uri)
+        if response["ret"] is False:
+            return response
+
+        server_details = response["data"]
+        secure_boot_url = server_details["SecureBoot"]["@odata.id"]
+
+        response = self.get_request(self.root_uri + secure_boot_url)
+        if response["ret"] is False:
+            return response
+
+        body = {}
+        body["SecureBootEnable"] = secure_boot_enable
+
+        return self.patch_request(self.root_uri + secure_boot_url, body, check_pyld=True)
+
     def get_hpe_thermal_config(self):
         result = {}
         key = "Thermal"
@@ -3525,3 +3556,176 @@ class RedfishUtils(object):
 
         return {'ret': True, 'changed': True,
                 'msg': "The following volumes were deleted: %s" % str(volume_ids)}
+
+    def create_volume(self, volume_details, storage_subsystem_id):
+        # Find the Storage resource from the requested ComputerSystem resource
+        response = self.get_request(self.root_uri + self.systems_uri)
+        if response['ret'] is False:
+            return response
+        data = response['data']
+        storage_uri = data.get('Storage', {}).get('@odata.id')
+        if storage_uri is None:
+            return {'ret': False, 'msg': 'Storage resource not found'}
+
+        # Get Storage Collection
+        response = self.get_request(self.root_uri + storage_uri)
+        if response['ret'] is False:
+            return response
+        data = response['data']
+
+        # Collect Storage Subsystems
+        self.storage_subsystems_uris = [i['@odata.id'] for i in response['data'].get('Members', [])]
+        if not self.storage_subsystems_uris:
+            return {
+                'ret': False,
+                'msg': "StorageCollection's Members array is either empty or missing"}
+
+        # Matching Storage Subsystem ID with user input
+        self.storage_subsystem_uri = ""
+        for storage_subsystem_uri in self.storage_subsystems_uris:
+            if storage_subsystem_uri.split("/")[-2] == storage_subsystem_id:
+                self.storage_subsystem_uri = storage_subsystem_uri
+
+        if not self.storage_subsystem_uri:
+            return {
+                'ret': False,
+                'msg': "Provided Storage Subsystem ID %s does not exist on the server" % storage_subsystem_id}
+
+        # Validate input parameters
+        required_parameters = ['RAIDType', 'Drives', 'CapacityBytes']
+        allowed_parameters = ['DisplayName', 'InitializeMethod', 'MediaSpanCount',
+                              'Name', 'ReadCachePolicy', 'StripSizeBytes', 'VolumeUsage', 'WriteCachePolicy']
+
+        for parameter in required_parameters:
+            if not volume_details.get(parameter):
+                return {
+                    'ret': False,
+                    'msg': "%s are required parameter to create a volume" % str(required_parameters)}
+
+        # Navigate to the volume uri of the correct storage subsystem
+        response = self.get_request(self.root_uri + self.storage_subsystem_uri)
+        if response['ret'] is False:
+            return response
+        data = response['data']
+
+        # Deleting any volumes of RAIDType None present on the Storage Subsystem
+        response = self.get_request(self.root_uri + data['Volumes']['@odata.id'])
+        if response['ret'] is False:
+            return response
+        volume_data = response['data']
+
+        if "Members" in volume_data:
+            for member in volume_data["Members"]:
+                response = self.get_request(self.root_uri + member['@odata.id'])
+                if response['ret'] is False:
+                    return response
+                member_data = response['data']
+
+                if member_data["RAIDType"] == "None":
+                    response = self.delete_request(self.root_uri + member['@odata.id'])
+                    if response['ret'] is False:
+                        return response
+
+        # Construct payload and issue POST command to create volume
+        volume_details["Links"] = {}
+        volume_details["Links"]["Drives"] = []
+        for drive in volume_details["Drives"]:
+            volume_details["Links"]["Drives"].append({"@odata.id": drive})
+        del volume_details["Drives"]
+        payload = volume_details
+        response = self.post_request(self.root_uri + data['Volumes']['@odata.id'], payload)
+        if response['ret'] is False:
+            return response
+
+        return {'ret': True, 'changed': True,
+                'msg': "Volume Created"}
+
+    def get_bios_registries(self):
+        # Get /redfish/v1
+        response = self.get_request(self.root_uri + self.systems_uri)
+        if not response["ret"]:
+            return response
+
+        server_details = response["data"]
+
+        # Get Registries URI
+        if "Bios" not in server_details:
+            msg = "Getting BIOS URI failed, Key 'Bios' not found in /redfish/v1/Systems/1/ response: %s"
+            return {
+                "ret": False,
+                "msg": msg % str(server_details)
+            }
+
+        bios_uri = server_details["Bios"]["@odata.id"]
+        bios_resp = self.get_request(self.root_uri + bios_uri)
+        if not bios_resp["ret"]:
+            return bios_resp
+
+        bios_data = bios_resp["data"]
+        attribute_registry = bios_data["AttributeRegistry"]
+
+        reg_uri = self.root_uri + self.service_root + "Registries/" + attribute_registry
+        reg_resp = self.get_request(reg_uri)
+        if not reg_resp["ret"]:
+            return reg_resp
+
+        reg_data = reg_resp["data"]
+
+        # Get BIOS attribute registry URI
+        lst = []
+
+        # Get the location URI
+        response = self.check_location_uri(reg_data, reg_uri)
+        if not response["ret"]:
+            return response
+
+        rsp_data, rsp_uri = response["rsp_data"], response["rsp_uri"]
+
+        if "RegistryEntries" not in rsp_data:
+            return {
+                "msg": "'RegistryEntries' not present in %s response, %s" % (rsp_uri, str(rsp_data)),
+                "ret": False
+            }
+
+        return {
+            "bios_registry": rsp_data,
+            "bios_registry_uri": rsp_uri,
+            "ret": True
+        }
+
+    def check_location_uri(self, resp_data, resp_uri):
+        # Get the location URI response
+        # return {"msg": self.creds, "ret": False}
+        vendor = self._get_vendor()['Vendor']
+        rsp_uri = ""
+        for loc in resp_data['Location']:
+            if loc['Language'] == "en":
+                rsp_uri = loc['Uri']
+                if vendor == 'HPE':
+                    # WORKAROUND
+                    # HPE systems with iLO 4 will have BIOS Atrribute Registries location URI as a dictonary with key 'extref'
+                    # Hence adding condition to fetch the Uri
+                    if type(loc['Uri']) is dict and "extref" in loc['Uri'].keys():
+                        rsp_uri = loc['Uri']['extref']
+        if not rsp_uri:
+            msg = "Language 'en' not found in BIOS Atrribute Registries location, URI: %s, response: %s"
+            return {
+                "ret": False,
+                "msg": msg % (resp_uri, str(resp_data))
+            }
+
+        res = self.get_request(self.root_uri + rsp_uri)
+        if res['ret'] is False:
+            # WORKAROUND
+            # HPE systems with iLO 4 or iLO5 compresses (gzip) for some URIs
+            # Hence adding encoding to the header
+            if vendor == 'HPE':
+                override_headers = {"Accept-Encoding": "gzip"}
+                res = self.get_request(self.root_uri + rsp_uri, override_headers=override_headers)
+        if res['ret']:
+            return {
+                "ret": True,
+                "rsp_data": res["data"],
+                "rsp_uri": rsp_uri
+            }
+        return res

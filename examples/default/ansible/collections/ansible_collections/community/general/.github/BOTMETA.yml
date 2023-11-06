@@ -249,9 +249,11 @@ files:
     labels: onepassword
     maintainers: samdoran
   $lookups/onepassword.py:
-    maintainers: azenk scottsb
+    ignore: scottsb
+    maintainers: azenk
   $lookups/onepassword_raw.py:
-    maintainers: azenk scottsb
+    ignore: scottsb
+    maintainers: azenk
   $lookups/passwordstore.py: {}
   $lookups/random_pet.py:
     maintainers: Akasurde
@@ -275,6 +277,8 @@ files:
     maintainers: russoz
   $module_utils/gconftool2.py:
     labels: gconftool2
+    maintainers: russoz
+  $module_utils/gio_mime.py:
     maintainers: russoz
   $module_utils/gitlab.py:
     keywords: gitlab source_control
@@ -328,6 +332,9 @@ files:
   $module_utils/scaleway.py:
     labels: cloud scaleway
     maintainers: $team_scaleway
+  $module_utils/snap.py:
+    labels: snap
+    maintainers: russoz
   $module_utils/ssh.py:
     maintainers: russoz
   $module_utils/storage/hpe3par/hpe3par.py:
@@ -512,6 +519,8 @@ files:
   $modules/gem.py:
     labels: gem
     maintainers: $team_ansible_core johanwiren
+  $modules/gio_mime.py:
+    maintainers: russoz
   $modules/git_config.py:
     maintainers: djmattyg007 mgedmin
   $modules/github_:
@@ -698,6 +707,8 @@ files:
     maintainers: mattock
   $modules/keycloak_authz_permission.py:
     maintainers: mattock
+  $modules/keycloak_authz_custom_policy.py:
+    maintainers: mattock
   $modules/keycloak_authz_permission_info.py:
     maintainers: mattock
   $modules/keycloak_client_rolemapping.py:
@@ -718,6 +729,8 @@ files:
     maintainers: kris2kris
   $modules/keycloak_realm_info.py:
     maintainers: fynncfchen
+  $modules/keycloak_realm_key.py:
+    maintainers: mattock
   $modules/keycloak_role.py:
     maintainers: laurpaum
   $modules/keycloak_user.py:
@@ -1200,6 +1213,8 @@ files:
     ignore: ryansb
   $modules/shutdown.py:
     maintainers: nitzmahone samdoran aminvakil
+  $modules/simpleinit_msb.py:
+    maintainers: vaygr
   $modules/sl_vm.py:
     maintainers: mcltn
   $modules/slack.py:
@@ -1212,7 +1227,7 @@ files:
     maintainers: $team_solaris
   $modules/snap.py:
     labels: snap
-    maintainers: angristan vcarceler
+    maintainers: angristan vcarceler russoz
   $modules/snap_alias.py:
     labels: snap
     maintainers: russoz

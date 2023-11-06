@@ -6,10 +6,8 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import pytest
-
-from .cmd_runner_test_utils import CmdRunnerTestHelper, ModuleTestCase, RunCmdCall
-from ansible_collections.community.general.plugins.modules import snap as module
+from .helper import Helper, ModuleTestCase, RunCmdCall
+from ansible_collections.community.general.plugins.modules import snap
 
 
 issue_6803_status_out = """Name    Version      Rev    Tracking         Publisher    Notes
@@ -404,6 +402,19 @@ TEST_CASES = [
                 out="hello-world (12345/stable) v12345 from Canonical** installed\n",
                 err="",
             ),
+            RunCmdCall(
+                command=['/testbin/snap', 'list'],
+                environ={'environ_update': {'LANGUAGE': 'C', 'LC_ALL': 'C'}, 'check_rc': False},
+                rc=0,
+                out=(
+                    "Name    Version      Rev    Tracking         Publisher    Notes"
+                    "core20  20220826     1623   latest/stable    canonical**  base"
+                    "lxd     5.6-794016a  23680  latest/stable/…  canonical**  -"
+                    "hello-world     5.6-794016a  23680  latest/stable/…  canonical**  -"
+                    "snapd   2.57.4       17336  latest/stable    canonical**  snapd"
+                    ""),
+                err="",
+            ),
         ]
     ),
     ModuleTestCase(
@@ -440,23 +451,24 @@ TEST_CASES = [
                 out=issue_6803_kubectl_out,
                 err="",
             ),
+            RunCmdCall(
+                command=['/testbin/snap', 'list'],
+                environ={'environ_update': {'LANGUAGE': 'C', 'LC_ALL': 'C'}, 'check_rc': False},
+                rc=0,
+                out=(
+                    "Name    Version      Rev    Tracking         Publisher    Notes"
+                    "core20  20220826     1623   latest/stable    canonical**  base"
+                    "lxd     5.6-794016a  23680  latest/stable/…  canonical**  -"
+                    "microk8s     5.6-794016a  23680  latest/stable/…  canonical**  -"
+                    "kubectl     5.6-794016a  23680  latest/stable/…  canonical**  -"
+                    "snapd   2.57.4       17336  latest/stable    canonical**  snapd"
+                    ""),
+                err="",
+            ),
         ]
     ),
 ]
 
-
-helper = CmdRunnerTestHelper(module.main, test_cases=TEST_CASES)
+helper = Helper.from_list(snap.main, TEST_CASES)
 patch_bin = helper.cmd_fixture
-
-
-@pytest.mark.parametrize('patch_ansible_module, testcase',
-                         helper.testcases_params, ids=helper.testcases_ids,
-                         indirect=['patch_ansible_module'])
-@pytest.mark.usefixtures('patch_ansible_module')
-def test_module(mocker, capfd, patch_bin, testcase):
-    """
-    Run unit tests for test cases listed in TEST_CASES
-    """
-
-    with helper(testcase, mocker, capfd) as testcase_context:
-        testcase_context.run()
+test_module = helper.test_module

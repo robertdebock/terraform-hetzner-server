@@ -24,7 +24,7 @@ If you encounter abusive behavior violating the [Ansible Code of Conduct](https:
 
 ## Tested with Ansible
 
-Tested with the current ansible-core 2.11, ansible-core 2.12, ansible-core 2.13, ansible-core 2.14, ansible-core 2.15 releases and the current development version of ansible-core. Ansible-core versions before 2.11.0 are not supported. This includes all ansible-base 2.10 and Ansible 2.9 releases.
+Tested with the current ansible-core 2.11, ansible-core 2.12, ansible-core 2.13, ansible-core 2.14, ansible-core 2.15, ansible-core 2.16 releases and the current development version of ansible-core. Ansible-core versions before 2.11.0 are not supported. This includes all ansible-base 2.10 and Ansible 2.9 releases.
 
 Parts of this collection will not work with ansible-core 2.11 on Python 3.12+.
 
@@ -34,13 +34,13 @@ Some modules and plugins require external libraries. Please check the requiremen
 
 ## Included content
 
-Please check the included content on the [Ansible Galaxy page for this collection](https://galaxy.ansible.com/community/general) or the [documentation on the Ansible docs site](https://docs.ansible.com/ansible/latest/collections/community/general/).
+Please check the included content on the [Ansible Galaxy page for this collection](https://galaxy.ansible.com/ui/repo/published/community/general/) or the [documentation on the Ansible docs site](https://docs.ansible.com/ansible/latest/collections/community/general/).
 
 ## Using this collection
 
 This collection is shipped with the Ansible package. So if you have it installed, no more action is required.
 
-If you have a minimal installation (only Ansible Core installed) or you want to use the latest version of the collection along with the whole Ansible package, you need to install the collection from [Ansible Galaxy](https://galaxy.ansible.com/community/general) manually with the `ansible-galaxy` command-line tool:
+If you have a minimal installation (only Ansible Core installed) or you want to use the latest version of the collection along with the whole Ansible package, you need to install the collection from [Ansible Galaxy](https://galaxy.ansible.com/ui/repo/published/community/general/) manually with the `ansible-galaxy` command-line tool:
 
     ansible-galaxy collection install community.general
 
@@ -57,7 +57,7 @@ Note that if you install the collection manually, it will not be upgraded automa
 ansible-galaxy collection install community.general --upgrade
 ```
 
-You can also install a specific version of the collection, for example, if you need to downgrade when something is broken in the latest version (please report an issue in this repository). Use the following syntax where `X.Y.Z` can be any [available version](https://galaxy.ansible.com/community/general):
+You can also install a specific version of the collection, for example, if you need to downgrade when something is broken in the latest version (please report an issue in this repository). Use the following syntax where `X.Y.Z` can be any [available version](https://galaxy.ansible.com/ui/repo/published/community/general/):
 
 ```bash
 ansible-galaxy collection install community.general:==X.Y.Z

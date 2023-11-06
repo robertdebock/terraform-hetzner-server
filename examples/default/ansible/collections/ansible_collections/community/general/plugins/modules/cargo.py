@@ -25,6 +25,12 @@ attributes:
   diff_mode:
     support: none
 options:
+  executable:
+    description:
+      - Path to the C(cargo) installed in the system.
+      - If not specified, the module will look C(cargo) in E(PATH).
+    type: path
+    version_added: 7.5.0
   name:
     description:
       - The name of a Rust package to install.
@@ -44,6 +50,14 @@ options:
       try to install all of them in this version.
     type: str
     required: false
+  locked:
+    description:
+      - Install with locked dependencies.
+      - This is only used when installing packages.
+    required: false
+    type: bool
+    default: false
+    version_added: 7.5.0
   state:
     description:
       - The state of the Rust package.
@@ -52,13 +66,18 @@ options:
     default: present
     choices: [ "present", "absent", "latest" ]
 requirements:
-    - cargo installed in bin path (recommended /usr/local/bin)
+    - cargo installed
 """
 
 EXAMPLES = r"""
 - name: Install "ludusavi" Rust package
   community.general.cargo:
     name: ludusavi
+
+- name: Install "ludusavi" Rust package with locked dependencies
+  community.general.cargo:
+    name: ludusavi
+    locked: true
 
 - name: Install "ludusavi" Rust package in version 0.10.0
   community.general.cargo:
@@ -90,12 +109,12 @@ from ansible.module_utils.basic import AnsibleModule
 class Cargo(object):
     def __init__(self, module, **kwargs):
         self.module = module
+        self.executable = [kwargs["executable"] or module.get_bin_path("cargo", True)]
         self.name = kwargs["name"]
         self.path = kwargs["path"]
         self.state = kwargs["state"]
         self.version = kwargs["version"]
-
-        self.executable = [module.get_bin_path("cargo", True)]
+        self.locked = kwargs["locked"]
 
     @property
     def path(self):
@@ -132,6 +151,8 @@ class Cargo(object):
     def install(self, packages=None):
         cmd = ["install"]
         cmd.extend(packages or self.name)
+        if self.locked:
+            cmd.append("--locked")
         if self.path:
             cmd.append("--root")
             cmd.append(self.path)
@@ -160,15 +181,16 @@ class Cargo(object):
 
 def main():
     arg_spec = dict(
+        executable=dict(default=None, type="path"),
         name=dict(required=True, type="list", elements="str"),
         path=dict(default=None, type="path"),
         state=dict(default="present", choices=["present", "absent", "latest"]),
         version=dict(default=None, type="str"),
+        locked=dict(default=False, type="bool"),
     )
     module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=True)
 
     name = module.params["name"]
-    path = module.params["path"]
     state = module.params["state"]
     version = module.params["version"]
 
@@ -180,7 +202,7 @@ def main():
         LANG="C", LC_ALL="C", LC_MESSAGES="C", LC_CTYPE="C"
     )
 
-    cargo = Cargo(module, name=name, path=path, state=state, version=version)
+    cargo = Cargo(module, **module.params)
     changed, out, err = False, None, None
     installed_packages = cargo.get_installed()
     if state == "present":

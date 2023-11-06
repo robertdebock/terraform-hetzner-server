@@ -14,9 +14,11 @@
 
   roles:
     - role: robertdebock.bootstrap
+    - role: robertdebock.update
     - role: robertdebock.buildtools
     - role: robertdebock.python_pip
     - role: robertdebock.grub
+    - role: robertdebock.storage
     - role: robertdebock.docker
     - role: robertdebock.users
     - role: robertdebock.cron

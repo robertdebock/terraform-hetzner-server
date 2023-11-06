@@ -9,6 +9,9 @@ roles:
   - name: robertdebock.python_pip
   - name: robertdebock.cron
   - name: robertdebock.grub
+  - name: robertdebock.update
+  - name: robertdebock.storage
 
 collections:
   - name: community.general
+  - name: ansible.posix

@@ -7,25 +7,10 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 
-import pytest
-
 from ansible_collections.community.general.plugins.modules import gconftool2_info
-from .cmd_runner_test_utils import CmdRunnerTestHelper
+from .helper import Helper
 
 
-with open("tests/unit/plugins/modules/test_gconftool2_info.yaml", "r") as TEST_CASES:
-    helper = CmdRunnerTestHelper(gconftool2_info.main, test_cases=TEST_CASES)
-    patch_bin = helper.cmd_fixture
-
-
-@pytest.mark.parametrize('patch_ansible_module, testcase',
-                         helper.testcases_params, ids=helper.testcases_ids,
-                         indirect=['patch_ansible_module'])
-@pytest.mark.usefixtures('patch_ansible_module')
-def test_module(mocker, capfd, patch_bin, testcase):
-    """
-    Run unit tests for test cases listed in TEST_CASES
-    """
-
-    with helper(testcase, mocker, capfd) as testcase_context:
-        testcase_context.run()
+helper = Helper.from_file(gconftool2_info.main, "tests/unit/plugins/modules/test_gconftool2_info.yaml")
+patch_bin = helper.cmd_fixture
+test_module = helper.test_module

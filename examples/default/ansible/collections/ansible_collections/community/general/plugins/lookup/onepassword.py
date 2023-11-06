@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018, Scott Buchanan <sbuchanan@ri.pn>
+# Copyright (c) 2018, Scott Buchanan <scott@buchanan.works>
 # Copyright (c) 2016, Andrew Zenk <azenk@umn.edu> (lastpass.py used as starting point)
 # Copyright (c) 2018, Ansible Project
 # GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -38,6 +38,10 @@ DOCUMENTATION = '''
         type: str
       subdomain:
         description: The 1Password subdomain to authenticate against.
+      account_id:
+        description: The account ID to target.
+        type: str
+        version_added: 7.5.0
       username:
         description: The username used to sign in.
       secret_key:
@@ -55,6 +59,7 @@ DOCUMENTATION = '''
         performed an initial sign in (meaning C(~/.op/config), C(~/.config/op/config) or C(~/.config/.op/config) exists), then only the
         C(master_password) is required. You may optionally specify O(subdomain) in this scenario, otherwise the last used subdomain will be used by C(op).
       - This lookup can perform an initial login by providing O(subdomain), O(username), O(secret_key), and O(master_password).
+      - Can target a specific account by providing the O(account_id).
       - Due to the B(very) sensitive nature of these credentials, it is B(highly) recommended that you only pass in the minimal credentials
         needed at any given time. Also, store these credentials in an Ansible Vault using a key that is equal to or greater in strength
         to the 1Password master password.
@@ -93,6 +98,12 @@ EXAMPLES = """
                 master_password=vault_master_password,
                 username='tweety@acme.com',
                 secret_key=vault_secret_key)
+
+- name: Retrieve password from specific account
+  ansible.builtin.debug:
+    var: lookup('community.general.onepassword',
+                'HAL 9000',
+                account_id='abc123')
 """
 
 RETURN = """
@@ -119,13 +130,23 @@ from ansible_collections.community.general.plugins.module_utils.onepassword impo
 class OnePassCLIBase(with_metaclass(abc.ABCMeta, object)):
     bin = "op"
 
-    def __init__(self, subdomain=None, domain="1password.com", username=None, secret_key=None, master_password=None, service_account_token=None):
+    def __init__(
+        self,
+        subdomain=None,
+        domain="1password.com",
+        username=None,
+        secret_key=None,
+        master_password=None,
+        service_account_token=None,
+        account_id=None,
+    ):
         self.subdomain = subdomain
         self.domain = domain
         self.username = username
         self.master_password = master_password
         self.secret_key = secret_key
         self.service_account_token = service_account_token
+        self.account_id = account_id
 
         self._path = None
         self._version = None
@@ -293,7 +314,9 @@ class OnePassCLIv1(OnePassCLIBase):
 
     def assert_logged_in(self):
         args = ["get", "account"]
-        if self.subdomain:
+        if self.account_id:
+            args.extend(["--account", self.account_id])
+        elif self.subdomain:
             account = "{subdomain}.{domain}".format(subdomain=self.subdomain, domain=self.domain)
             args.extend(["--account", account])
 
@@ -326,6 +349,10 @@ class OnePassCLIv1(OnePassCLIBase):
 
     def get_raw(self, item_id, vault=None, token=None):
         args = ["get", "item", item_id]
+
+        if self.account_id:
+            args.extend(["--account", self.account_id])
+
         if vault is not None:
             args += ["--vault={0}".format(vault)]
 
@@ -462,10 +489,10 @@ class OnePassCLIv2(OnePassCLIBase):
                 # If the field name doesn't exist in the section, match on the value of "label"
                 # then "id" and return "value"
                 if field.get("label") == field_name:
-                    return field["value"]
+                    return field.get("value", "")
 
                 if field.get("id") == field_name:
-                    return field["value"]
+                    return field.get("value", "")
 
             # Look at the section data and get an indentifier. The value of 'id' is either a unique ID
             # or a human-readable string. If a 'label' field exists, prefer that since
@@ -475,10 +502,10 @@ class OnePassCLIv2(OnePassCLIBase):
             if section_title == current_section_title:
                 # In the correct section. Check "label" then "id" for the desired field_name
                 if field.get("label") == field_name:
-                    return field["value"]
+                    return field.get("value", "")
 
                 if field.get("id") == field_name:
-                    return field["value"]
+                    return field.get("value", "")
 
         return ""
 
@@ -502,7 +529,9 @@ class OnePassCLIv2(OnePassCLIBase):
             # an interactive prompt. Only run 'op account get' after first listing accounts to see
             # if there are any previously configured accounts.
             args = ["account", "get"]
-            if self.subdomain:
+            if self.account_id:
+                args.extend(["--account", self.account_id])
+            elif self.subdomain:
                 account = "{subdomain}.{domain}".format(subdomain=self.subdomain, domain=self.domain)
                 args.extend(["--account", account])
 
@@ -533,6 +562,10 @@ class OnePassCLIv2(OnePassCLIBase):
 
     def get_raw(self, item_id, vault=None, token=None):
         args = ["item", "get", item_id, "--format", "json"]
+
+        if self.account_id:
+            args.extend(["--account", self.account_id])
+
         if vault is not None:
             args += ["--vault={0}".format(vault)]
 
@@ -559,13 +592,14 @@ class OnePassCLIv2(OnePassCLIBase):
 
 class OnePass(object):
     def __init__(self, subdomain=None, domain="1password.com", username=None, secret_key=None, master_password=None,
-                 service_account_token=None):
+                 service_account_token=None, account_id=None):
         self.subdomain = subdomain
         self.domain = domain
         self.username = username
         self.secret_key = secret_key
         self.master_password = master_password
         self.service_account_token = service_account_token
+        self.account_id = account_id
 
         self.logged_in = False
         self.token = None
@@ -578,7 +612,7 @@ class OnePass(object):
         for cls in OnePassCLIBase.__subclasses__():
             if cls.supports_version == version.split(".")[0]:
                 try:
-                    return cls(self.subdomain, self.domain, self.username, self.secret_key, self.master_password, self.service_account_token)
+                    return cls(self.subdomain, self.domain, self.username, self.secret_key, self.master_password, self.service_account_token, self.account_id)
                 except TypeError as e:
                     raise AnsibleLookupError(e)
 
@@ -642,8 +676,9 @@ class LookupModule(LookupBase):
         secret_key = self.get_option("secret_key")
         master_password = self.get_option("master_password")
         service_account_token = self.get_option("service_account_token")
+        account_id = self.get_option("account_id")
 
-        op = OnePass(subdomain, domain, username, secret_key, master_password, service_account_token)
+        op = OnePass(subdomain, domain, username, secret_key, master_password, service_account_token, account_id)
         op.assert_logged_in()
 
         values = []
