@@ -24,7 +24,7 @@ storage_mounts:
   - name: /var/lib/docker
     src: /dev/data/docker
     fstype: ext4
-    opts: defaults
+    opts: discard,default
     owner: root
     group: root
     mode: "0750"
