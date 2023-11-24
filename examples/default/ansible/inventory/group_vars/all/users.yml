@@ -1,6 +1,6 @@
 ---
 
-users_group:
+users_groups:
   - name: gitlab-runner
     system: yes
 
