@@ -14,7 +14,7 @@ storage_volumegroups:
 storage_volumes:
   - name: docker
     vg: data
-    size: "100%FREE"
+    size: "100%VG"
 
 storage_filesystems:
   - name: /dev/data/docker
@@ -24,7 +24,7 @@ storage_mounts:
   - name: /var/lib/docker
     src: /dev/data/docker
     fstype: ext4
-    opts: discard,default
+    opts: default
     owner: root
     group: root
     mode: "0750"
