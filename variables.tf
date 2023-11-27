@@ -9,7 +9,7 @@ variable "image" {
   type        = string
   default     = "ubuntu-22.04"
   validation {
-    condition     = contains(["alma-8", "alma-9", "centos-7", "centos-stream-8", "centos-stream-9", "collab-tools", "debian-10", "debian-11", "debian-12", "docker-ce", "fedora-37", "fedora-38", "gitlab", "go", "jitsi", "lamp", "nextcloud", "photoprism", "prometheus-grafana", "rocky-8", "rocky-9", "ruby", "rustdesk", "ubuntu-20.04", "ubuntu-22.04", "wireguard", "wordpress"], var.image)
+    condition     = contains(["alma-8", "alma-9", "centos-7", "centos-stream-8", "centos-stream-9", "collab-tools", "debian-10", "debian-11", "debian-12", "docker-ce", "fedora-38", "fedora-39", "gitlab", "go", "jitsi", "lamp", "nextcloud", "photoprism", "prometheus-grafana", "rocky-8", "rocky-9", "ruby", "rustdesk", "ubuntu-20.04", "ubuntu-22.04", "wireguard", "wordpress"], var.image)
     error_message = "Image ${var.image} not found."
   }
 }
