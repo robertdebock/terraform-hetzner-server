@@ -36,7 +36,6 @@ The image can be any of these:
 
 - "alma-8"
 - "alma-9"
-- "centos-7"
 - "centos-stream-8"
 - "centos-stream-9"
 - "collab-tools"
