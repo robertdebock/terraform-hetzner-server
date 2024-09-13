@@ -1,10 +1,10 @@
 locals {
   _server_size_type_map = {
-    extra-small = "cx11"
-    small       = "cx21"
-    medium      = "cx31"
-    large       = "cx41"
-    extra-large = "cx51"
+    extra-small = "cpx11"
+    small       = "cpx21"
+    medium      = "cpx31"
+    large       = "cpx41"
+    extra-large = "cpx51"
   }
   server_type = local._server_size_type_map[var.size]
 
