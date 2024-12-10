@@ -15,6 +15,11 @@ These variables are supported
 
 Pick a name for the machine, like "myserver". Defaults to **"node1"**.
 
+The name must:
+
+- Start and end with alphanumeric characters
+- Contain only alphanumeric characters, dots, or dashes
+
 ## Size
 
 Pick a size for the machine. Defaults to **"small"**.
@@ -61,6 +66,24 @@ The image can be any of these:
 - **"ubuntu-22.04"**
 - "wireguard"
 - "wordpress"
+
+## Volumes
+
+Optionally attach volumes to your server by providing a list of volume configurations. Each volume requires:
+
+- `name`: A name for the volume
+- `size`: Size in GB (must be between 10GB and 10240GB/10TB)
+
+Example:
+
+```hcl
+volumes = [
+  {
+    name = "data"
+    size = 100  # Creates a 100GB volume
+  }
+]
+```
 
 ## Datacenter
 
