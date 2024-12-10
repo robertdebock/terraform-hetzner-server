@@ -2,6 +2,10 @@ variable "name" {
   description = "The name of the server."
   type        = string
   default     = "node1"
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$", var.name))
+    error_message = "Server name must start and end with alphanumeric characters and contain only alphanumeric characters, dots, or dashes."
+  }
 }
 
 variable "image" {
@@ -28,15 +32,26 @@ variable "ssh_key_name" {
   description = "The name of (an existing) SSH key hosted on Hetzner Cloud."
   type        = string
   default     = ""
+  validation {
+    condition     = var.ssh_key_name == "" || length(regexall("^\\s+$", var.ssh_key_name)) == 0
+    error_message = "SSH key name cannot be whitespace when provided."
+  }
 }
 
 variable "volumes" {
-  description = "A list of volumes and their size to attach to the server."
+  description = "A list of volumes and their size (in GB) to attach to the server."
   type = list(object({
     name = string
     size = number
   }))
   default = []
+  validation {
+    condition = alltrue([
+      for volume in var.volumes : 
+      volume.size >= 10 && volume.size <= 10240
+    ])
+    error_message = "Volume sizes must be between 10GB and 10240GB (10TB)."
+  }
 }
 
 variable "datacenter" {
