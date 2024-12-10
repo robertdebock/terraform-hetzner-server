@@ -38,3 +38,20 @@ variable "volumes" {
   }))
   default     = []
 }
+
+variable "datacenter" {
+  description = "The datacenter to deploy the server in."
+  type        = string
+  default     = "fsn1-dc14"
+  validation {
+    condition     = contains([
+      "nbg1-dc3",  # Nuremberg
+      "fsn1-dc14", # Falkenstein
+      "hel1-dc2",  # Helsinki
+      "ash-dc1",   # Ashburn, VA
+      "hil-dc1",   # Hillsboro, OR
+      "sgp1-dc1"   # Singapore
+    ], var.datacenter)
+    error_message = "Datacenter ${var.datacenter} not valid. Please choose from: Nuremberg (nbg1-dc3), Falkenstein (fsn1-dc14), Helsinki (hel1-dc2), Ashburn VA (ash-dc1), Hillsboro OR (hil-dc1), or Singapore (sgp1-dc1)."
+  }
+}

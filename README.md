@@ -4,11 +4,12 @@ This Terraform module allows you to spin up a server on Hetzner Cloud.
 
 These variables are supported
 
-| variable | default        |
-|----------|----------------|
-| `name`   | `node1`        |
-| `size`   | `small`        |
-| `image`  | `ubuntu-22.04` |
+| variable    | default        |
+|-------------|----------------|
+| `name`      | `node1`        |
+| `size`      | `small`        |
+| `image`     | `ubuntu-22.04` |
+| `datacenter`| `fsn1-dc14`    |
 
 ## Name
 
@@ -60,3 +61,16 @@ The image can be any of these:
 - **"ubuntu-22.04"**
 - "wireguard"
 - "wordpress"
+
+## Datacenter
+
+Pick a datacenter for the machine. Defaults to **"fsn1-dc14"** (Falkenstein, Germany).
+
+The datacenter can be any of these:
+
+- "nbg1-dc3" (Nuremberg, Germany, EU Central)
+- **"fsn1-dc14"** (Falkenstein, Germany, EU Central)
+- "hel1-dc2" (Helsinki, Finland, EU Central)
+- "ash-dc1" (Ashburn, VA, US East)
+- "hil-dc1" (Hillsboro, OR, US West)
+- "sgp1-dc1" (Singapore, AP Southeast)

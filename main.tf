@@ -17,6 +17,7 @@ resource "hcloud_server" "default" {
   image       = data.hcloud_image.default.id
   server_type = local.server_type
   ssh_keys    = local.ssh_keys
+  datacenter  = var.datacenter
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
