@@ -32,11 +32,11 @@ variable "ssh_key_name" {
 
 variable "volumes" {
   description = "A list of volumes and their size to attach to the server."
-  type        = list(object({
+  type = list(object({
     name = string
     size = number
   }))
-  default     = []
+  default = []
 }
 
 variable "datacenter" {
@@ -44,7 +44,7 @@ variable "datacenter" {
   type        = string
   default     = "fsn1-dc14"
   validation {
-    condition     = contains([
+    condition = contains([
       "nbg1-dc3",  # Nuremberg
       "fsn1-dc14", # Falkenstein
       "hel1-dc2",  # Helsinki
